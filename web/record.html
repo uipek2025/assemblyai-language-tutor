@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Record an eval set · Lumi</title>
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <header>
+    <div class="brand"><span class="logo">◐</span> Lumi <small>record a smoke-test eval set</small></div>
+    <nav>
+      <a href="/">Tutor</a>
+      <a href="/pitch.html">YC pitch coach</a>
+      <a href="/record.html" class="active">Record eval set</a>
+    </nav>
+  </header>
+  <main class="narrow stack">
+    <section class="card hero">
+      <h1>Record 16 learner utterances</h1>
+      <p>Read each prompt aloud and press Record/Stop. Each clip downloads as a WAV (allow multiple downloads if Chrome asks).
+        Then download the manifest and put everything in <code>evals/data/</code> (WAVs in <code>evals/data/audio/</code>).
+        Prompts marked <b>WRONG ON PURPOSE</b> test whether the tutor wrongly praises a mistake.</p>
+      <p><b>Before you trust the numbers:</b> listen back and correct any <code>reference</code> in the manifest that doesn't match what you actually said. Bad ground truth is the most common way evaluations go wrong.</p>
+    </section>
+    <section class="card" id="prompts"></section>
+    <section class="card">
+      <button id="manifest" class="primary">Download manifest.jsonl</button>
+      <span id="count" class="note"></span>
+    </section>
+  </main>
+  <div id="toast" class="toast" hidden></div>
+  <script type="module" src="/js/record.js"></script>
+</body>
+</html>

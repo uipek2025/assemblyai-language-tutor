@@ -1,0 +1,14 @@
+{
+  "name": "STT-3.7 agent, out of the box",
+  "provider": "assemblyai",
+  "connect_params": {
+    "speech_model": "assemblyai-stt-3-7-realtime-agent",
+    "language_detection": true
+  },
+  "practice_overrides": {},
+  "language_codes": [],
+  "use_agent_context": false,
+  "boost_target_keyterms": false,
+  "trailing_silence_ms": 3000,
+  "chunk_ms": 50
+}

@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Lumi · voice language tutor on AssemblyAI</title>
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body data-phase="idle">
+  <header>
+    <div class="brand"><span class="logo">◐</span> Lumi <small>voice language tutor · built on AssemblyAI</small></div>
+    <nav>
+      <a href="/" class="active">Tutor</a>
+      <a href="/pitch.html">YC pitch coach</a>
+      <a href="/record.html">Record eval set</a>
+    </nav>
+  </header>
+
+  <main class="tutor-layout">
+    <section class="card controls">
+      <label>I speak <select id="native"></select></label>
+      <label>I'm learning <select id="target"></select></label>
+      <button id="start" class="primary">Start</button>
+      <div class="status">
+        <span class="dot"></span><span id="phase">Press Start</span>
+        <div class="meter"><div id="level"></div></div>
+      </div>
+      <details class="options">
+        <summary>Options</summary>
+        <label><input type="checkbox" id="interrupt" /> Allow interruptions <small>(wear headphones)</small></label>
+        <label><input type="checkbox" id="slow" checked /> Slow down <span id="slowLabel">Spanish</span> phrases</label>
+        <label><input type="checkbox" id="boost" /> Boost the practice phrase in STT
+          <small>(keyterms: fewer false "try again"s, but can hide real mistakes)</small></label>
+      </details>
+      <p id="ttsNote" class="note"></p>
+    </section>
+
+    <section class="card conversation">
+      <div id="log" class="log"></div>
+      <div id="partial" class="partial"></div>
+      <p class="hint">Press <kbd>Space</kbd> when you've finished speaking. Lumi waits longer while you practise a phrase.</p>
+    </section>
+
+    <aside class="side">
+      <section class="card phrase" id="phraseCard" hidden>
+        <div class="label" id="phraseLabel">Say it back</div>
+        <div class="phrase-text" id="phraseText"></div>
+        <div class="pron" id="phrasePron"></div>
+        <div class="meaning" id="phraseMeaning"></div>
+        <div class="row">
+          <button id="hear">▶ Hear it</button>
+          <button id="hearSlow">🐢 Slowly</button>
+        </div>
+        <div id="result" class="result" hidden>
+          <div id="verdict" class="verdict"></div>
+          <div id="chips" class="chips"></div>
+          <div id="heard" class="heard"></div>
+        </div>
+      </section>
+
+      <section class="card hud">
+        <h3>Under the hood</h3>
+        <dl>
+          <dt>STT model</dt><dd id="hud-model">–</dd>
+          <dt>Turn detection</dt><dd id="hud-turn">–</dd>
+          <dt>End of speech → transcript</dt><dd id="hud-eot">–</dd>
+          <dt>Detected language</dt><dd id="hud-lang">–</dd>
+          <dt>LLM (Gateway)</dt><dd id="hud-llm">–</dd>
+          <dt>Reply → first audio (TTS-1)</dt><dd id="hud-tts">–</dd>
+        </dl>
+        <p class="legend"><span class="chip ok">ok</span><span class="chip unclear">unclear</span><span class="chip close">close</span><span class="chip missed">missed</span></p>
+      </section>
+    </aside>
+  </main>
+
+  <div id="toast" class="toast" hidden></div>
+  <script type="module" src="/js/app.js"></script>
+</body>
+</html>

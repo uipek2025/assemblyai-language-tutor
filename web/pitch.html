@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>60-second pitch coach · built on AssemblyAI</title>
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <header>
+    <div class="brand"><span class="logo">◐</span> Pitch coach <small>60 seconds · one AssemblyAI key</small></div>
+    <nav>
+      <a href="/">Tutor</a>
+      <a href="/pitch.html" class="active">YC pitch coach</a>
+      <a href="/record.html">Record eval set</a>
+    </nav>
+  </header>
+  <main class="narrow stack">
+    <section class="card hero">
+      <h1>Pitch me in 60 seconds.</h1>
+      <p>Live captions and delivery stats from realtime STT word timestamps, partner-style feedback from LLM Gateway, and the verdict read out by TTS-1. Same API key for all three.</p>
+    </section>
+
+    <section class="card">
+      <div class="row" style="align-items:center; justify-content:space-between">
+        <button id="go" class="primary">Start pitch</button>
+        <div class="big-timer" id="timer">1:00</div>
+      </div>
+      <div class="stats">
+        <div class="stat"><b id="s-wpm">–</b><span>words / min</span></div>
+        <div class="stat"><b id="s-hedges">0</b><span>hedge words</span></div>
+        <div class="stat"><b id="s-pauses">0</b><span>pauses &gt; 1.2 s</span></div>
+        <div class="stat"><b id="s-words">0</b><span>words</span></div>
+      </div>
+      <div class="live" id="live"></div>
+    </section>
+
+    <section class="card feedback" id="feedback" hidden>
+      <div class="row" style="justify-content:space-between; align-items:baseline">
+        <h2>Partner feedback</h2><div class="score" id="f-score"></div>
+      </div>
+      <dl>
+        <dt>What I heard you do</dt><dd id="f-oneliner"></dd>
+        <dt>Strongest moment</dt><dd id="f-strongest"></dd>
+        <dt>Missing</dt><dd id="f-missing"></dd>
+        <dt>Cut this</dt><dd id="f-cut"></dd>
+        <dt>Try opening with</dt><dd id="f-opening"></dd>
+      </dl>
+    </section>
+  </main>
+  <div id="toast" class="toast" hidden></div>
+  <script type="module" src="/js/pitch.js"></script>
+</body>
+</html>

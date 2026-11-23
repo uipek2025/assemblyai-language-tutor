@@ -1,0 +1,3 @@
+{"id": "q04", "audio": "audio/q04.wav", "reference": "what does me gustaría mean", "target_spans": ["me gustaría"], "expected_language": "en", "tags": ["question", "code_switch"]}
+{"id": "p04", "audio": "audio/p04.wav", "reference": "dónde está la biblioteca", "target": "¿Dónde está la biblioteca?", "label": "correct", "target_spans": ["dónde está la biblioteca"], "agent_context": "Now you try: ¿Dónde está la biblioteca?", "expected_language": "es", "tags": ["practice", "hesitation"]}
+{"id": "p05", "audio": "audio/p05.wav", "reference": "dónde está la librería", "target": "¿Dónde está la biblioteca?", "label": "incorrect", "agent_context": "Now you try: ¿Dónde está la biblioteca?", "expected_language": "es", "tags": ["practice", "wrong_word"], "speech_end_s": 2.4}
