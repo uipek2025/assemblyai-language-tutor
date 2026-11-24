@@ -17,6 +17,7 @@ const state = {
   keytermsActive: false,
   history: [],
   muted: false,
+  micPaused: false, // demo pause: silence the stream without touching the session
   interrupted: false,
   stopping: false,
 };
@@ -38,16 +39,31 @@ let clipGuardMs = 0;
 function setPhase(phase) {
   state.phase = phase;
   document.body.dataset.phase = phase;
-  $('phase').textContent = PHASE_LABEL[phase];
+  $('phase').textContent = state.micPaused ? 'Mic paused' : PHASE_LABEL[phase];
 }
 
 function hud(key, value) {
   $(`hud-${key}`).textContent = value;
 }
 
+function syncMicPause() {
+  const btn = $('pauseMic');
+  btn.hidden = !state.mic;
+  btn.textContent = state.micPaused ? 'Resume mic (M)' : 'Pause mic (M)';
+  btn.setAttribute('aria-pressed', state.micPaused ? 'true' : 'false');
+  $('phase').textContent = state.micPaused ? 'Mic paused' : PHASE_LABEL[state.phase];
+}
+
+function setMicPaused(paused) {
+  state.micPaused = paused;
+  syncMicPause();
+}
+
 function setRunning(running) {
   $('start').textContent = running ? 'Stop' : 'Start';
   $('start').classList.toggle('danger', running);
+  if (!running) state.micPaused = false;
+  syncMicPause();
 }
 
 function addUserBubble(text, lang) {
@@ -299,7 +315,8 @@ function onMicChunk(pcm, rms) {
   $('level').style.width = `${Math.min(100, Math.round(rms * 400))}%`;
   // While Lumi talks (half-duplex) we keep the stream alive with silence so the
   // server's audio timeline - and our latency maths - stays continuous.
-  state.stt?.sendAudio(state.muted ? silence(pcm.byteLength) : pcm);
+  // micPaused is the demo switch: same silence, independent of half-duplex.
+  state.stt?.sendAudio(state.muted || state.micPaused ? silence(pcm.byteLength) : pcm);
 }
 
 // ------------------------------------------------------------ start/stop
@@ -345,6 +362,7 @@ async function stop() {
   await state.mic?.stop();
   state.mic = null;
   state.practice = null;
+  state.micPaused = false;
   setRunning(false);
   setPhase('idle');
   showPartial('');
@@ -371,6 +389,12 @@ $('start').onclick = (e) => {
   return state.mic ? stop() : start();
 };
 
+$('pauseMic').onclick = (e) => {
+  e.currentTarget.blur();
+  if (!state.mic) return;
+  setMicPaused(!state.micPaused);
+};
+
 for (const id of ['native', 'target']) {
   $(id).onchange = () => {
     state.native = $('native').value;
@@ -390,6 +414,12 @@ $('hearSlow').onclick = () => state.cardPhrase && replay([{ lang: state.cardPhra
 
 const isFormField = (el) => ['INPUT', 'SELECT', 'TEXTAREA'].includes(el?.tagName);
 document.addEventListener('keydown', (e) => {
+  if (e.code === 'KeyM' && !e.repeat && !e.ctrlKey && !e.metaKey && !e.altKey && !isFormField(document.activeElement)) {
+    if (!state.mic) return;
+    e.preventDefault();
+    setMicPaused(!state.micPaused);
+    return;
+  }
   if (e.code !== 'Space' || !state.stt?.isOpen || isFormField(document.activeElement)) return;
   e.preventDefault();
   if (state.phase === 'listening' && !e.repeat) {
