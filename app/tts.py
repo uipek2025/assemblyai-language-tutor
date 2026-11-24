@@ -1,10 +1,10 @@
 """AssemblyAI-TTS-1 client.
 
 TTS-1 does not detect language: every request must say which language the text
-is in, and any voice can speak all supported languages. That pairs naturally
-with the tutor's per-language reply segments: one consistent tutor voice that
-pronounces "¿Dónde está la biblioteca?" as Spanish and the explanation around
-it as English.
+is in. A voice can speak the other languages, but it keeps the accent it was
+recorded in, so Kyla (American English) reads French with an English accent.
+Target-language segments use the voice recorded in that language. English
+keeps the configured voice.
 """
 from __future__ import annotations
 
@@ -18,6 +18,27 @@ import httpx
 from .config import TTS_LANGUAGES, Settings
 
 log = logging.getLogger("lumi.tts")
+
+# TTS-1 reads "?" and "!" as their own syllable, so "aujourd'hui ?" ends with an
+# extra "ah" that is not in the text. The marks stay on screen; only the audio
+# request drops them. Inverted Spanish marks do the same thing.
+_VOCALIZED_PUNCT = str.maketrans("", "", "¿¡?!")
+
+# Catalog voices recorded in each language. These are AssemblyAI's defaults.
+# Speaking another language with Kyla is intelligible and sounds American.
+RECORDED_VOICES = {
+    "en": "aai-kyla",
+    "es": "aai-antonioluis",
+    "fr": "aai-donatien",
+    "de": "aai-magdalena",
+    "it": "aai-giada",
+    "pt": "aai-nelson",
+}
+
+
+def for_speech(text: str) -> str:
+    """Text actually sent to TTS-1."""
+    return re.sub(r"\s{2,}", " ", text.translate(_VOCALIZED_PUNCT)).strip()
 
 
 class TTSUnsupportedLanguage(ValueError):
@@ -44,23 +65,30 @@ class TextToSpeech:
         lang = (lang or "")[:2].lower()
         if lang not in TTS_LANGUAGES:
             raise TTSUnsupportedLanguage(lang)
-        text = text.strip()[:5000]
+        text = for_speech(text)[:5000]
         if not text:
             raise TTSError("empty text")
 
         # Learners replay phrases constantly ("say it again", "slower"). Caching
         # identical requests saves latency and money (TTS bills per character).
-        key = (text, lang, self.voice_id)
+        voice = self.voice_for(lang)
+        key = (text, lang, voice)
         if key in self._cache:
             self._cache.move_to_end(key)
             audio, meta = self._cache[key]
             return audio, {**meta, "cached": True}
 
-        audio, meta = await self._request(text, lang, self.voice_id)
+        audio, meta = await self._request(text, lang, voice)
         self._cache[key] = (audio, meta)
         if len(self._cache) > self._cache_size:
             self._cache.popitem(last=False)
         return audio, meta
+
+    def voice_for(self, lang: str) -> str:
+        """English uses the configured voice. Every other language uses the voice recorded in it."""
+        if lang != "en":
+            return RECORDED_VOICES.get(lang, "")
+        return self.voice_id
 
     async def _request(self, text: str, lang: str, voice_id: str) -> tuple[bytes, dict]:
         if not self.settings.api_key:
@@ -80,7 +108,8 @@ class TextToSpeech:
             # Configured voice not available on this account/region: fall back
             # to the language's default voice rather than going silent.
             log.warning("TTS voice %r refused (%s); falling back to default voice", voice_id, resp.text[:200])
-            self.voice_id = ""
+            if voice_id == self.voice_id:
+                self.voice_id = ""
             return await self._request(text, lang, "")
 
         if resp.status_code != 200:

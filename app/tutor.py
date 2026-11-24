@@ -57,7 +57,7 @@ This is a spoken conversation. Your reply is read aloud by text-to-speech, so:
 - Return JSON matching the schema. Split the reply into "segments" by language. Explanations go in {n} segments (lang "{native}"). Every {t} word or phrase goes in its own {t} segment (lang "{target}") so it is pronounced correctly. Never embed {t} words inside a {n} segment.
 
 Teaching flow:
-1. When asked how to say something, give the most common natural {t} phrasing, then invite the learner to say it back.
+1. When asked how to say something, give the most common natural {t} phrasing, then invite the learner to say it back. The {t} phrase itself must be its own segment. Never end on "we say", "you'd say" or "you say" without that segment.
 2. Whenever the learner should say a {t} phrase next (new phrase or retry), fill "practice_phrase": exact {t} text with correct accents and punctuation, lang "{target}", a simple respelling for a {n} speaker in "pronunciation", and a short {n} "meaning". Otherwise set all four fields to "".
 3. If a PRACTICE RESULT is given, base feedback only on it. Never claim you heard stress, intonation or accent: speech recognition can only tell what was understood.
    - correct: praise briefly, then offer a next step (leave practice_phrase empty unless you teach something new).
@@ -161,11 +161,31 @@ def sanitize_reply(
             practice = {"text": max(modelled, key=len), "lang": target, "pronunciation": "", "meaning": ""}
             source = "inferred"
 
+    # The model sometimes announces a phrase ("we say") and puts it only on the
+    # practice card, or nowhere in the audio. Say it if it was not already spoken.
+    if practice and not _phrase_spoken(segments, target, practice["text"]):
+        segments.append({"lang": target, "text": practice["text"]})
+
     return {"segments": segments, "practice": practice, "practice_source": source}
 
 
 def _same_phrase(a: str, b: str) -> bool:
     return normalize_tokens(a) == normalize_tokens(b)
+
+
+def _phrase_spoken(segments: list[dict[str, str]], target: str, phrase: str) -> bool:
+    """True when the practice phrase's words already occur, in order, in a target segment."""
+    want = normalize_tokens(phrase)
+    if not want:
+        return True
+    spoken = normalize_tokens(" ".join(s["text"] for s in segments if s["lang"] == target))
+    start = 0
+    for token in want:
+        try:
+            start = spoken.index(token, start) + 1
+        except ValueError:
+            return False
+    return True
 
 
 def reply_text(segments: list[dict[str, str]]) -> str:

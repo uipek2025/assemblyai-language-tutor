@@ -1,5 +1,6 @@
 // Small shared helpers for the three pages.
 
+// Languages the tutor offers. AssemblyAI-TTS-1 speaks each of these with a voice recorded in that language.
 export const LANGUAGES = {
   en: 'English',
   es: 'Spanish',
@@ -7,16 +8,8 @@ export const LANGUAGES = {
   de: 'German',
   it: 'Italian',
   pt: 'Portuguese',
-  nl: 'Dutch',
-  tr: 'Turkish',
-  ja: 'Japanese',
-  zh: 'Mandarin',
-  ko: 'Korean',
-  hi: 'Hindi',
-  ar: 'Arabic',
 };
 
-// Languages AssemblyAI-TTS-1 speaks (the realtime STT models understand all of the above).
 export const TTS_LANGS = ['en', 'es', 'fr', 'de', 'it', 'pt'];
 
 export const $ = (id) => document.getElementById(id);

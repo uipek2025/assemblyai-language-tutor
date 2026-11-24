@@ -31,6 +31,8 @@ const VERDICT = {
 };
 const zeroBuffers = new Map();
 const silence = (n) => zeroBuffers.get(n) || zeroBuffers.set(n, new ArrayBuffer(n)).get(n);
+let clipStartedAt = 0;
+let clipGuardMs = 0;
 
 // ---------------------------------------------------------------- UI helpers
 function setPhase(phase) {
@@ -141,6 +143,10 @@ function updateTtsNote() {
 // ------------------------------------------------------ STT configuration
 const languageCodes = () => [...new Set([state.native, state.target])];
 const allowInterrupt = () => $('interrupt').checked;
+// A one-word French clip is easy for the speakers to trip. Ignore barge-in until
+// that clip has had time to finish, and at most 1.5 s into a longer one.
+const canBargeIn = () => allowInterrupt() && state.phase === 'speaking'
+  && performance.now() - clipStartedAt > clipGuardMs;
 
 /** Turn detection follows the conversation state: be patient while practising. */
 function applyTurnPreset() {
@@ -180,6 +186,10 @@ async function speak(segments, rate) {
     const { firstAudioMs, usedFallback } = await speakSegments(segments, {
       rateFor: (seg) => rate ?? (seg.lang === state.target && $('slow').checked ? 0.85 : 1),
       isInterrupted: () => state.interrupted,
+      onClipStart: (durationMs) => {
+        clipStartedAt = performance.now();
+        clipGuardMs = Math.min(Math.max(durationMs || 800, 400), 1500);
+      },
     });
     if (firstAudioMs != null) hud('tts', `${firstAudioMs} ms${usedFallback ? ' (browser voice)' : ''}`);
   } finally {
@@ -256,7 +266,7 @@ async function respond(turn) {
 function onTurn(turn, final) {
   if (!final) {
     if (turn.transcript) {
-      if (state.phase === 'speaking' && allowInterrupt()) interrupt();
+      if (canBargeIn()) interrupt();
       showPartial(turn.transcript);
     }
     return;
@@ -265,7 +275,7 @@ function onTurn(turn, final) {
   const text = (turn.transcript || '').trim();
   if (!text || state.phase === 'thinking') return; // ignore overlap while a reply is being prepared
   if (state.phase === 'speaking') {
-    if (!allowInterrupt()) return;
+    if (!canBargeIn()) return;
     interrupt();
   }
   hud('eot', turn.eotLatencyMs != null ? `${turn.eotLatencyMs} ms` : '–');
@@ -275,7 +285,7 @@ function onTurn(turn, final) {
 }
 
 function onSpeechStarted() {
-  if (state.phase === 'speaking' && allowInterrupt()) interrupt(); // barge-in
+  if (canBargeIn()) interrupt(); // barge-in
 }
 
 function onSttClose(ev) {

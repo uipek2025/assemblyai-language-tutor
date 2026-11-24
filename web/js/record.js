@@ -83,5 +83,9 @@ $('manifest').onclick = () => {
   download(new Blob([lines.join('\n') + '\n'], { type: 'application/jsonl' }), 'manifest.jsonl');
 };
 
-prompts = await (await fetch('/eval-prompts.json')).json();
+// /record.html loads the Spanish set; /record.html?lang=fr loads eval-prompts.fr.json.
+const lang = (new URLSearchParams(location.search).get('lang') || '').toLowerCase();
+let promptFile = /^[a-z]{2}$/.test(lang) ? await fetch(`/eval-prompts.${lang}.json`) : null;
+if (!promptFile || !promptFile.ok) promptFile = await fetch('/eval-prompts.json');
+prompts = await promptFile.json();
 render();

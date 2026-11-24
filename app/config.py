@@ -30,9 +30,8 @@ TTS_LANGUAGES = {
     "pt": "portuguese",
 }
 
-# A friendly subset of the 32 languages the realtime STT models code-switch
-# across. Languages outside TTS_LANGUAGES still work for listening; the browser
-# falls back to its own speech synthesis for the tutor's voice.
+# Languages offered in the tutor. The realtime STT model understands more, but
+# these are the ones TTS-1 speaks with a voice recorded in that language.
 UI_LANGUAGES = {
     "en": "English",
     "es": "Spanish",
@@ -40,13 +39,6 @@ UI_LANGUAGES = {
     "de": "German",
     "it": "Italian",
     "pt": "Portuguese",
-    "nl": "Dutch",
-    "tr": "Turkish",
-    "ja": "Japanese",
-    "zh": "Mandarin",
-    "ko": "Korean",
-    "hi": "Hindi",
-    "ar": "Arabic",
 }
 
 # Turn detection is punctuation-based on the current realtime models:
@@ -97,8 +89,9 @@ class Settings:
     # At startup, spend a few tokens finding the first model in the chain this key
     # can call, so the learner's first turn doesn't pay for that discovery.
     llm_startup_probe: bool = field(default_factory=lambda: _env("LLM_STARTUP_PROBE", "1") not in ("0", "false", "no"))
-    # One voice for every language keeps the tutor sounding like one person.
-    # Leave empty to use each language's default voice.
+    # English voice. Other languages use the voice recorded in that language
+    # (see app/tts.py) so a French phrase is not read in an American accent.
+    # Leave empty to use each language's default voice, including English.
     tts_voice_id: str = field(default_factory=lambda: _env("TTS_VOICE_ID", "aai-kyla"))
     # Only for local testing against a fake streaming server (tests/test_browser_e2e.py).
     streaming_url_override: str = field(default_factory=lambda: _env("ASSEMBLYAI_STREAMING_URL"))

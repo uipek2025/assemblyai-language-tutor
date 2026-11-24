@@ -25,11 +25,11 @@ async function fetchClip(seg) {
   }
 }
 
-function playBlob(blob, rate) {
+function playBlob(blob, rate, onStart) {
   return new Promise((resolve) => {
     const url = URL.createObjectURL(blob);
-    const audio = new Audio(url);
-    audio.playbackRate = rate;
+    const audio = new Audio();
+    audio.preload = 'auto';
     audio.preservesPitch = true;
     let settled = false;
     const done = () => {
@@ -38,10 +38,24 @@ function playBlob(blob, rate) {
       URL.revokeObjectURL(url);
       resolve();
     };
+    // Setting playbackRate before the duration is known makes Chrome skip the
+    // start of a short clip. French words ("Parfait", "merci") are one clip
+    // played slightly slower, so the beginning of the word disappeared.
+    let started = false;
+    const start = () => {
+      if (started || settled) return;
+      started = true;
+      audio.playbackRate = rate || 1;
+      const durationMs = Number.isFinite(audio.duration) ? audio.duration * 1000 : 0;
+      onStart?.(durationMs);
+      audio.play().catch(done);
+    };
     current = { stop: () => { audio.pause(); done(); } };
     audio.onended = done;
     audio.onerror = done;
-    audio.play().catch(done);
+    audio.onloadedmetadata = start;
+    audio.src = url;
+    if (audio.readyState >= 1) start();
   });
 }
 
@@ -66,7 +80,7 @@ function speakWithBrowser(text, lang, rate) {
  * @param {() => boolean} isInterrupted checked between segments
  * @returns {Promise<{firstAudioMs: number|null, usedFallback: boolean}>}
  */
-export async function speakSegments(segments, { rateFor = () => 1, isInterrupted = () => false } = {}) {
+export async function speakSegments(segments, { rateFor = () => 1, isInterrupted = () => false, onClipStart = () => {} } = {}) {
   const started = performance.now();
   const clips = segments.map(fetchClip); // parallel prefetch
   let firstAudioMs = null;
@@ -78,9 +92,10 @@ export async function speakSegments(segments, { rateFor = () => 1, isInterrupted
     if (firstAudioMs === null) firstAudioMs = Math.round(performance.now() - started);
     const seg = segments[i];
     if (clip.blob) {
-      await playBlob(clip.blob, rateFor(seg));
+      await playBlob(clip.blob, rateFor(seg), onClipStart);
     } else {
       usedFallback = true;
+      onClipStart(Math.max(400, seg.text.length * 70));
       await speakWithBrowser(seg.text, seg.lang, rateFor(seg));
     }
   }

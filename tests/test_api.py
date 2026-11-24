@@ -194,14 +194,53 @@ def test_tts_maps_language_caches_and_refuses_unsupported(make_client):
     with make_client(up) as client:
         first = client.post("/api/tts", json={"text": "Hola", "lang": "es"})
         second = client.post("/api/tts", json={"text": "Hola", "lang": "es"})
+        french = client.post("/api/tts", json={"text": "Bonjour", "lang": "fr"})
+        english = client.post("/api/tts", json={"text": "Hello", "lang": "en"})
         japanese = client.post("/api/tts", json={"text": "こんにちは", "lang": "ja"})
     assert first.status_code == 200 and first.headers["content-type"] == "audio/wav"
     assert first.content.endswith(b"spanish")
     assert first.headers["x-tts-ttfa-ms"] == "88.5"
     assert second.headers["x-tts-cached"] == "true"
-    assert len(up.bodies("/v1/speech")) == 1
-    assert up.bodies("/v1/speech")[0]["voice_id"] == "aai-kyla"
+    bodies = up.bodies("/v1/speech")
+    assert len(bodies) == 3
+    assert bodies[0]["voice_id"] == "aai-antonioluis" and bodies[0]["language"] == "spanish"
+    assert bodies[1]["voice_id"] == "aai-donatien" and bodies[1]["language"] == "french"
+    assert bodies[2]["voice_id"] == "aai-kyla" and bodies[2]["language"] == "english"
+    assert french.status_code == 200 and english.status_code == 200
     assert japanese.status_code == 422 and japanese.json()["fallback"] == "browser"
+
+
+def test_tts_does_not_speak_punctuation_as_a_syllable(make_client):
+    up = FakeUpstream()
+    with make_client(up) as client:
+        res = client.post("/api/tts", json={"text": "Bonjour, comment ça va aujourd'hui ?", "lang": "fr"})
+    assert res.status_code == 200
+    body = up.bodies("/v1/speech")[0]
+    assert body["text"] == "Bonjour, comment ça va aujourd'hui"
+    assert body["language"] == "french" and body["voice_id"] == "aai-donatien"
+
+
+def test_unspoken_practice_phrase_is_added_to_the_reply(make_client):
+    reply = {
+        "segments": [{"lang": "en", "text": "Excellent! Perfect. Now, for thank you, we say"}],
+        "practice_phrase": {"text": "Merci", "lang": "fr", "pronunciation": "mair-SEE", "meaning": "thank you"},
+    }
+    up = FakeUpstream([(200, reply)])
+    with make_client(up) as client:
+        data = client.post("/api/tutor", json={"transcript": "how do I say thank you", "target_language": "fr"}).json()
+    assert data["segments"][-1] == {"lang": "fr", "text": "Merci"}
+    assert [s["text"] for s in data["segments"]].count("Merci") == 1
+
+
+def test_practice_phrase_already_spoken_is_not_repeated(make_client):
+    reply = {
+        "segments": [{"lang": "en", "text": "You say"}, {"lang": "fr", "text": "merci"}],
+        "practice_phrase": {"text": "Merci", "lang": "fr", "pronunciation": "", "meaning": "thank you"},
+    }
+    up = FakeUpstream([(200, reply)])
+    with make_client(up) as client:
+        data = client.post("/api/tutor", json={"transcript": "how do I say thank you", "target_language": "fr"}).json()
+    assert [s["text"] for s in data["segments"]] == ["You say", "merci"]
 
 
 def test_greeting(make_client):

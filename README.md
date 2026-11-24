@@ -8,7 +8,7 @@ A reference voice agent for the take-home scenario: a customer builds a voice ag
 
 ```
 You:  "How do you say 'where is the library' in Spanish?"
-Lumi: "In Spanish you'd say… ¿Dónde está la biblioteca? Now you try."      ← one voice, both languages
+Lumi: "In Spanish you'd say… ¿Dónde está la biblioteca? Now you try."      ← English in the configured voice, Spanish in its own
 You:  "Dónde está la… librería?"
 Lumi: "Close! Biblioteca, not librería — that's a bookshop. ¿Dónde está la biblioteca?"
        [dónde ✓] [está ✓] [la ✓] [biblioteca ✗]
@@ -88,8 +88,8 @@ LLMs are unreliable judges of "did they say it right?" and a wrong "well done" i
 **6. Language detection tells an attempt from a question.**
 If the learner was asked to repeat a Spanish phrase and replies confidently in English ("wait, what does biblioteca mean?"), that turn is a question, not a failed attempt. The tutor answers it instead of saying "try again".
 
-**7. One voice that speaks both languages.**
-TTS-1 needs the language on every request and doesn't detect it, while any voice can speak all six supported languages. So replies come back from the LLM as segments tagged by language, and each segment is synthesised in its own language with the same voice. Segments are fetched in parallel and played in order. Replays are cached, which matters because TTS bills per character. For a target language TTS-1 doesn't speak yet, that segment falls back to the browser's voice. STT covers 32 languages and TTS covers 6, and that gap belongs in the evaluation.
+**7. Each language is spoken by a voice recorded in that language.**
+TTS-1 needs the language on every request and doesn't detect it. Replies come back from the LLM as segments tagged by language. English uses the `TTS_VOICE_ID` voice. Every other language uses AssemblyAI's voice recorded in that language (French: `aai-donatien`). Segments are fetched in parallel and played in order. Replays are cached, which matters because TTS bills per character. For a target language TTS-1 doesn't speak yet, that segment falls back to the browser's voice. STT covers 32 languages and TTS covers 6, and that gap belongs in the evaluation.
 
 **8. Latency and security.**
 The server mints single-use temporary tokens, so the API key never reaches the browser. Audio goes straight from the browser to AssemblyAI with no relay hop. Setting `ASSEMBLYAI_REGION=eu` keeps STT, LLM and TTS traffic in the EU. The server is stateless: history travels with each request.
@@ -146,7 +146,7 @@ The LLM is the long pole. On a paid key the expected reply time is about 1.2–1
 
 Every metric comes with a 95% bootstrap confidence interval over utterances. Speech end comes from a vendor-independent energy detector, or from a manual annotation, never from a provider's own timestamps.
 
-**Record a smoke-test set (10 minutes).** Open <http://localhost:8000/record.html> and read 16 prompts. They cover questions, code-switching, hesitations, correct attempts, and deliberate mistakes. Move the WAVs to `evals/data/audio/` and `manifest.jsonl` to `evals/data/`. Then listen back and fix any `reference` that doesn't match what you actually said.
+**Record a smoke-test set (10 minutes).** Open <http://localhost:8000/record.html> and read 16 prompts. They cover questions, code-switching, hesitations, correct attempts, and deliberate mistakes. Move the WAVs to `evals/data/audio/` and `manifest.jsonl` to `evals/data/`. Then listen back and fix any `reference` that doesn't match what you actually said. There's a French set too: open `/record.html?lang=fr`, and use `evals/configs/learner-fr.json` in place of `learner.json` in the commands below.
 
 ```bash
 # out-of-the-box vs tuned for learners
@@ -180,7 +180,7 @@ That's the same three building blocks and the same API key, put together in abou
 python -m pytest
 ```
 
-There are 52 tests covering:
+There are 55 tests covering:
 - grading;
 - metrics, with WER cross-checked against `jiwer`;
 - API routes, with AssemblyAI mocked at the HTTP layer;

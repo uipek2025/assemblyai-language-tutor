@@ -1,0 +1,22 @@
+{
+  "name": "STT-3.7 agent, tuned for learners (English → French)",
+  "provider": "assemblyai",
+  "connect_params": {
+    "speech_model": "assemblyai-stt-3-7-realtime-agent",
+    "language_detection": true,
+    "min_turn_silence": 160,
+    "max_turn_silence": 1600
+  },
+  "practice_overrides": {
+    "min_turn_silence": 560,
+    "max_turn_silence": 2400
+  },
+  "language_codes": [
+    "en",
+    "fr"
+  ],
+  "use_agent_context": true,
+  "boost_target_keyterms": false,
+  "trailing_silence_ms": 3000,
+  "chunk_ms": 50
+}
